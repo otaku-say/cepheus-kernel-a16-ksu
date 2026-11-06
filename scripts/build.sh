@@ -6,8 +6,8 @@
 set -euo pipefail
 
 # ---- configuration -----------------------------------------------------------
-KERNEL_REPO="${KERNEL_REPO:-https://github.com/raystef66/kernel_xiaomi_cepheus}"
-KERNEL_REF="${KERNEL_REF:-16.0-ksun}"
+KERNEL_REPO="${KERNEL_REPO:-https://github.com/crdroidandroid/android_kernel_xiaomi_cepheus}"
+KERNEL_REF="${KERNEL_REF:-16.0}"
 # pin the exact base commit so an upstream re-base cannot silently change
 # the tree we patch (empty => just track the branch tip)
 KERNEL_SHA="${KERNEL_SHA-aa587668f86bd02ff1d7f825f5a89a886a84c8d8}"

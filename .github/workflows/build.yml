@@ -14,7 +14,7 @@ on:
     inputs:
       kernel_ref:
         description: 'kernel branch to build (16.0-ksun = InfiniR source for crDroid 16)'
-        default: '16.0-ksun'
+        default: '16.0'
         type: choice
         options: ['16.0-ksun', '16.0', '15.0', '14.0']
       ksu_sha:
@@ -34,7 +34,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  KERNEL_REF: ${{ inputs.kernel_ref || '16.0-ksun' }}
+  KERNEL_REF: ${{ inputs.kernel_ref || '16.0' }}
   KSU_SHA: ${{ inputs.ksu_sha || 'e3292239f3b8384cc52bdc6f23995d643271a7ce' }}
   TOOLCHAIN: ${{ inputs.toolchain || 'proton' }}
   KSU_VERSION_OVERRIDE: '33355'      # == KernelSU-Next manager v3.4.2 versionCode
