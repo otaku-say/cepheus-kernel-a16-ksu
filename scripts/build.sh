@@ -143,6 +143,21 @@ for rel, sig in edits:
     print(f"    neutralized {sig.strip()} ({rel})")
 PYEOF
 
+  # ksu_selinux_hide_init 会改写 SELinux 状态、ksu_supercalls_init 会接管 reboot
+  # syscall —— 两者都在 init 极早期生效，是 A16 上最后两个可疑点。
+  initc="$KERNEL_DIR/drivers/kernelsu/core/init.c"
+  if [ -f "$initc" ] && ! grep -q 'CORE_NEUTRALIZED' "$initc"; then
+    python3 - "$initc" <<'PYEOF'
+import sys
+p = sys.argv[1]
+s = open(p, encoding="utf-8").read()
+for fn in ("ksu_selinux_hide_init();", "ksu_supercalls_init();"):
+    s = s.replace("\t" + fn, "\t/* CORE_NEUTRALIZED: " + fn + " */")
+open(p, "w", encoding="utf-8").write(s)
+print("    neutralized core init: selinux_hide + supercalls")
+PYEOF
+  fi
+
   # LSM hooks (inode_permission/rename/task_fix_setuid) 会改写 SELinux 判定，
   # A16 的 apexd/init 对权限极其敏感；基线阶段先不注册。
   lsm="$KERNEL_DIR/drivers/kernelsu/hook/lsm_hooks.c"
