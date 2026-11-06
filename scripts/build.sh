@@ -117,7 +117,7 @@ edits = [
  ("feature/sucompat.c", "int ksu_handle_execveat_sucompat("),
  ("feature/sucompat.c", "int ksu_handle_faccessat("),
  ("feature/sucompat.c", "int ksu_handle_stat("),
- ("runtime/ksud_integration.c", "int ksu_handle_newfstat_ret("),
+ ("runtime/ksud_integration.c", "void ksu_handle_newfstat_ret("),
  ("runtime/ksud_integration.c", "int ksu_handle_input_handle_event("),
 ]
 for rel, sig in edits:
@@ -141,6 +141,23 @@ for rel, sig in edits:
     open(p, "w", encoding="utf-8").write(s)
     print(f"    neutralized {sig.strip()} ({rel})")
 PYEOF
+
+  # LSM hooks (inode_permission/rename/task_fix_setuid) 会改写 SELinux 判定，
+  # A16 的 apexd/init 对权限极其敏感；基线阶段先不注册。
+  lsm="$KERNEL_DIR/drivers/kernelsu/hook/lsm_hooks.c"
+  if [ -f "$lsm" ] && ! grep -q 'LSM_NEUTRALIZED' "$lsm"; then
+    python3 - "$lsm" <<'PYEOF'
+import sys
+p = sys.argv[1]
+s = open(p, encoding="utf-8").read()
+i = s.find("void __init ksu_lsm_hook_init(void)")
+if i >= 0:
+    b = s.find("{", i)
+    s = s[:b+1] + " /* LSM_NEUTRALIZED */ return;" + s[b+1:]
+    open(p, "w", encoding="utf-8").write(s)
+    print("    neutralized ksu_lsm_hook_init")
+PYEOF
+  fi
 fi
 
 # ---- 2. deterministic kernel-side integration --------------------------------
