@@ -70,6 +70,29 @@ if [ "$ENABLE_KSU" = "1" ]; then
   grep -q 'drivers/kernelsu/Kconfig' drivers/Kconfig
 fi
 
+# A16's init trips over ksu_handle_execveat_ksud's task_work_add(init_task)
+# during zygote exec (kernel dies before zygote starts). The ksud hook only
+# bootstraps userspace ksud; su itself works through sucompat + allow_shell.
+# Skip it for this tree so the kernel boots.
+if [ "$ENABLE_KSU" = "1" ] && [ "${SKIP_KSUD_HOOK:-1}" = "1" ]; then
+  f="$KERNEL_DIR/drivers/kernelsu/core/init.c"
+  if [ -f "$f" ] && ! grep -q 'SKIP_KSUD_HOOK' "$f"; then
+    python3 - "$f" <<'PYEOF'
+import re, sys
+p = sys.argv[1]
+s = open(p, encoding="utf-8").read()
+s = s.replace("""	ksu_handle_execveat_ksud(fd, filename_ptr,
+				 (struct user_arg_ptr *)argv,
+				 (struct user_arg_ptr *)envp, flags);
+	return ksu_handle_execveat_sucompat""",
+"""	/* SKIP_KSUD_HOOK: A16 init breaks on task_work_add(init_task) */
+	return ksu_handle_execveat_sucompat""", 1)
+open(p, "w", encoding="utf-8").write(s)
+print("    patched core/init.c: ksud hook skipped")
+PYEOF
+  fi
+fi
+
 # ---- 2. deterministic kernel-side integration --------------------------------
 # KernelSU's Kbuild mutates kernel sources with `$(shell sed -i ...)` while make
 # is already running: with -j the target file is often compiled before the edit
