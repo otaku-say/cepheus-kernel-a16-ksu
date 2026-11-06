@@ -77,7 +77,7 @@ jobs:
       - name: Deterministic patches apply on the pristine tree
         run: |
           set -e
-          base="https://raw.githubusercontent.com/crdroidandroid/android_kernel_xiaomi_cepheus/${KERNEL_REF}"
+          base="https://raw.githubusercontent.com/raystef66/kernel_xiaomi_cepheus/${KERNEL_REF}"
           root="$(pwd)"
           d="$(mktemp -d)"
           cd "$d"
@@ -88,7 +88,14 @@ jobs:
           done
           for p in "$root"/patches/kernel/*.patch; do
             printf '  %-44s ' "$(basename "$p")"
-            patch -p1 --dry-run -f -i "$p" >/dev/null && echo OK
+            if patch -p1 --dry-run -f -i "$p" >/dev/null 2>&1; then
+              echo OK
+            elif patch -p1 -R --dry-run -f -i "$p" >/dev/null 2>&1; then
+              # 上游分支（16.0-ksun）已内置该改动：反向应用成功即视为已生效
+              echo 'ALREADY-APPLIED'
+            else
+              echo FAILED; exit 1
+            fi
           done
 
   build:
