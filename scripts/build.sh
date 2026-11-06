@@ -194,6 +194,9 @@ set_cfg() {  # $1 = key, $2 = value ("" => disable)
 # the ROM's init.rc/installd.rc still create/chmod /config/sdcardfs, so keep the
 # driver even though Android 14 uses FUSE for /sdcard (zero-cost parity with stock)
 set_cfg CONFIG_SDCARD_FS y
+# The dynamic-partition ROM ships no /lib/modules, so anything built as =m is
+# dead weight (and WIREGUARD would silently be unavailable). Force built-in.
+set_cfg CONFIG_WIREGUARD y
 set_cfg CONFIG_KSU "$([ "$ENABLE_KSU" = 1 ] && echo y)"
 if [ "$ENABLE_KSU" = "1" ]; then
   set_cfg CONFIG_KSU_MANUAL_HOOK y

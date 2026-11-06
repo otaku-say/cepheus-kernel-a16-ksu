@@ -14,3 +14,28 @@ CONFIG_LOCALVERSION_AUTO    version string only, off for reproducible builds
 # variant rebuilds it properly on KernelSU-Next; the pure variant deliberately
 # leaves it out so it can be paired with Magisk instead.
 CONFIG_KSU                  stock KSU 11872 is unusable; ksu variant re-enables it, pure variant drops it on purpose
+
+# ---- KernelSU-Next v3.4.2 vs the stock InfiniR SUSFS build -------------------
+# The stock 4.14.355 InfiniR kernel ships SUSFS on top of a UAPI-6 KernelSU
+# (backslashxx/cepheus fork). KernelSU-Next Manager v3.4.2 speaks UAPI 5 and has
+# no SUSFS in its UAPI-5 tree, so a UAPI-5 build cannot carry SUSFS at all.
+# SUSFS only hides root traces from anti-tamper checks; it is not needed for
+# agent UI automation, while "manager v3.4.2 must work" is a hard requirement.
+# Verified on device: kernel_umount + avc_spoof + per-app App Profile umount
+# already hide /system/bin/su, module mounts and SELinux denials.
+CONFIG_KSU_SUSFS                        not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_SUSFS_SUS_PATH               not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_SUSFS_SUS_MOUNT              not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_SUSFS_SUS_KSTAT              not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_SUSFS_TRY_UMOUNT             not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_SUSFS_SPOOF_UNAME            not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_SUSFS_ENABLE_LOG             not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_SUSFS_OPEN_REDIRECT          not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_SUSFS_SUS_MAP                not available in UAPI-5 KernelSU-Next
+CONFIG_KSU_MANUAL_HOOK                  present in ksu variant, absent in pure variant by design
+
+# Android mounts /system, /vendor etc from the dynamic super partition and never
+# loads modules; a =m wireguard would simply never be loaded, breaking VPN apps.
+CONFIG_WIREGUARD                        ROM has no modules partition; must stay built-in (=y)
