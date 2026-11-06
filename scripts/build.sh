@@ -93,6 +93,18 @@ PYEOF
   fi
 fi
 
+# A16's init does not survive ksu_apply_init_rc_proxy() replacing file->f_op
+# while reading init.rc: init stalls before zygote ever starts (pmsg has no
+# zygote record at all). That proxy only injects KSU's own rc lines, which we do
+# not need - su works through sucompat + allow_shell. Set the switch off.
+if [ "$ENABLE_KSU" = "1" ] && [ "${DISABLE_INIT_RC_HOOK:-1}" = "1" ]; then
+  f="$KERNEL_DIR/drivers/kernelsu/runtime/ksud_integration.c"
+  if [ -f "$f" ] && ! grep -q 'INIT_RC_HOOK_DISABLED' "$f"; then
+    sed -i 's|^bool ksu_init_rc_hook __read_mostly = true;|bool ksu_init_rc_hook __read_mostly = false; /* INIT_RC_HOOK_DISABLED */|' "$f"
+    grep -q 'INIT_RC_HOOK_DISABLED' "$f" && echo "    patched ksud_integration.c: init.rc proxy disabled"
+  fi
+fi
+
 # ---- 2. deterministic kernel-side integration --------------------------------
 # KernelSU's Kbuild mutates kernel sources with `$(shell sed -i ...)` while make
 # is already running: with -j the target file is often compiled before the edit
