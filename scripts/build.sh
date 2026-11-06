@@ -137,7 +137,8 @@ for rel, sig in edits:
         continue
     if "NEUTRALIZED" in s[b:b+120]:
         continue
-    s = s[:b+1] + " /* NEUTRALIZED */ return 0;" + s[b+1:]
+    ret = "return;" if sig.strip().startswith("void ") else "return 0;"
+    s = s[:b+1] + " /* NEUTRALIZED */ " + ret + s[b+1:]
     open(p, "w", encoding="utf-8").write(s)
     print(f"    neutralized {sig.strip()} ({rel})")
 PYEOF
