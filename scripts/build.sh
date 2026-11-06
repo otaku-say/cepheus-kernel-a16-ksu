@@ -105,6 +105,44 @@ if [ "$ENABLE_KSU" = "1" ] && [ "${DISABLE_INIT_RC_HOOK:-1}" = "1" ]; then
   fi
 fi
 
+# Baseline experiment: short-circuit every optional hook so the kernel boots with
+# no KernelSU interception at all. If this boots, add hooks back one at a time to
+# find the one that breaks A16 init.
+if [ "$ENABLE_KSU" = "1" ] && [ "${NEUTRALIZE_HOOKS:-1}" = "1" ]; then
+  python3 - "$KERNEL_DIR/drivers/kernelsu" <<'PYEOF'
+import os, sys
+root = sys.argv[1]
+edits = [
+ # (file, old_signature_start, marker_needed)
+ ("feature/sucompat.c", "int ksu_handle_execveat_sucompat("),
+ ("feature/sucompat.c", "int ksu_handle_faccessat("),
+ ("feature/sucompat.c", "int ksu_handle_stat("),
+ ("runtime/ksud_integration.c", "int ksu_handle_newfstat_ret("),
+ ("runtime/ksud_integration.c", "int ksu_handle_input_handle_event("),
+]
+for rel, sig in edits:
+    p = os.path.join(root, rel)
+    if not os.path.exists(p):
+        continue
+    s = open(p, encoding="utf-8").read()
+    if "NEUTRALIZED" in s and sig in s.split("NEUTRALIZED")[1][:400]:
+        continue
+    # 在函数体的第一个 { 之后插入 return 0
+    i = s.find(sig)
+    if i < 0:
+        print(f"    MISS {sig} in {rel}")
+        continue
+    b = s.find("{", i)
+    if b < 0:
+        continue
+    if "NEUTRALIZED" in s[b:b+120]:
+        continue
+    s = s[:b+1] + " /* NEUTRALIZED */ return 0;" + s[b+1:]
+    open(p, "w", encoding="utf-8").write(s)
+    print(f"    neutralized {sig.strip()} ({rel})")
+PYEOF
+fi
+
 # ---- 2. deterministic kernel-side integration --------------------------------
 # KernelSU's Kbuild mutates kernel sources with `$(shell sed -i ...)` while make
 # is already running: with -j the target file is often compiled before the edit
