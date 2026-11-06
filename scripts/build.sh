@@ -196,6 +196,8 @@ def edit(rel, fn):
         print(f"    already patched {rel}")
 
 if enable_ksu:
+    import os as _os
+    DO_STRUCT = _os.environ.get("KSU_STRUCT_PATCHES", "0") == "1"
     # (a) manual-hook sentinel: KernelSU's Kbuild greps kernel/reboot.c for this
     def reboot(s):
         if "ksu_handle_sys_reboot" in s:
@@ -224,7 +226,7 @@ if enable_ksu:
         assert s.count(old) == 1
         return s.replace(old, "struct seccomp {\n\tint mode;\n\tatomic_t filter_count;\n"
                               "\tstruct seccomp_filter *filter;\n};\n", 1)
-    edit("include/linux/seccomp.h", seccomp)
+    if DO_STRUCT: edit("include/linux/seccomp.h", seccomp)
 
     # (c) selinux_inode()/selinux_cred() accessors (upstream 5.x) used by KSU
     def objsec(s):
@@ -238,7 +240,7 @@ if enable_ksu:
             "{\n\treturn inode->i_security;\n}\n\n"
             "static inline struct task_security_struct *selinux_cred(const struct cred *cred)\n"
             "{\n\treturn cred->security;\n}\n\n" + anchor, 1)
-    edit("security/selinux/include/objsec.h", objsec)
+    if DO_STRUCT: edit("security/selinux/include/objsec.h", objsec)
 
     # (d) neutralise the racing build-time mutations in KernelSU's own Kbuild
     kb = os.path.join(root, "drivers/kernelsu/Kbuild")
