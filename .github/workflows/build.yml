@@ -136,7 +136,7 @@ jobs:
           ENABLE_KSU: ${{ matrix.variant == 'ksu' && '1' || '0' }}
           # committed stock ramdisk/cmdline/AVB block => a boot.img that is
           # structurally identical to the one inside crDroid 10.14
-          RAMDISK: prebuilt/boot.ramdisk.lz4
+          RAMDISK: prebuilt/boot.ramdisk.gz
           JOBS: ${{ github.event_name == 'pull_request' && 2 || 4 }}
           WORK: ${{ github.workspace }}/work
           OUT: ${{ github.workspace }}/out
