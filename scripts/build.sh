@@ -151,7 +151,7 @@ PYEOF
 import sys
 p = sys.argv[1]
 s = open(p, encoding="utf-8").read()
-for fn in ("ksu_selinux_hide_init();", "ksu_supercalls_init();"):
+for fn in ("ksu_selinux_hide_init();", "ksu_supercalls_init();", "ksu_app_profile_init();"):
     s = s.replace("\t" + fn, "\t/* CORE_NEUTRALIZED: " + fn + " */")
 open(p, "w", encoding="utf-8").write(s)
 print("    neutralized core init: selinux_hide + supercalls")
@@ -226,7 +226,7 @@ if enable_ksu:
         assert s.count(old) == 1
         return s.replace(old, "struct seccomp {\n\tint mode;\n\tatomic_t filter_count;\n"
                               "\tstruct seccomp_filter *filter;\n};\n", 1)
-    if DO_STRUCT: edit("include/linux/seccomp.h", seccomp)
+    if _os.environ.get("KSU_SECCOMP_PATCH", "0") == "1": edit("include/linux/seccomp.h", seccomp)
 
     # (c) selinux_inode()/selinux_cred() accessors (upstream 5.x) used by KSU
     def objsec(s):
@@ -240,7 +240,7 @@ if enable_ksu:
             "{\n\treturn inode->i_security;\n}\n\n"
             "static inline struct task_security_struct *selinux_cred(const struct cred *cred)\n"
             "{\n\treturn cred->security;\n}\n\n" + anchor, 1)
-    if DO_STRUCT: edit("security/selinux/include/objsec.h", objsec)
+    edit("security/selinux/include/objsec.h", objsec)  # file_wrapper needs selinux_inode
 
     # (d) neutralise the racing build-time mutations in KernelSU's own Kbuild
     kb = os.path.join(root, "drivers/kernelsu/Kbuild")
